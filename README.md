@@ -1,5 +1,7 @@
 # 🍺 go-brew-search
 
+> **🤖 AI Experiment**: This project was entirely generated through a conversation with Claude 3.5 Sonnet. It serves as an experiment in AI-assisted software development.
+
 A blazing-fast, interactive Homebrew package search tool with local caching. Say goodbye to slow `brew search` commands!
 
 ## ✨ Features

@@ -2,6 +2,7 @@ package ui
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/ktr0731/go-fuzzyfinder"
@@ -9,9 +10,23 @@ import (
 )
 
 func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]api.Package, error) {
+	// Create a copy and sort packages to put likely matches first
+	sortedPackages := make([]api.Package, len(packages))
+	copy(sortedPackages, packages)
+	
+	// Sort by token length first (shorter names are often what people search for)
+	// then alphabetically
+	sort.Slice(sortedPackages, func(i, j int) bool {
+		lenI, lenJ := len(sortedPackages[i].Token), len(sortedPackages[j].Token)
+		if lenI != lenJ {
+			return lenI < lenJ
+		}
+		return sortedPackages[i].Token < sortedPackages[j].Token
+	})
+	
 	// Prepare display items
-	items := make([]string, len(packages))
-	for i, pkg := range packages {
+	items := make([]string, len(sortedPackages))
+	for i, pkg := range sortedPackages {
 		status := "  "
 		if existing[pkg.Token] {
 			status = "✓ "
@@ -56,14 +71,34 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 	indices, err := fuzzyfinder.FindMulti(
 		items,
 		func(i int) string {
-			return items[i]
+			// Return a search string that gives more weight to the package name
+			pkg := sortedPackages[i]
+			
+			// Build search string with package name repeated for better matching priority
+			parts := []string{
+				pkg.Token,  // Exact name (highest priority)
+				pkg.Token,  // Repeat for emphasis
+				pkg.Token,  // Triple weight
+			}
+			
+			// Add full name if different
+			if pkg.FullName != "" && pkg.FullName != pkg.Token {
+				parts = append(parts, pkg.FullName)
+			}
+			
+			// Add description last (lower priority)
+			if pkg.Description != "" {
+				parts = append(parts, pkg.Description)
+			}
+			
+			return strings.Join(parts, " ")
 		},
 		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
 			if i == -1 {
 				return ""
 			}
 			
-			pkg := packages[i]
+			pkg := sortedPackages[i]
 			var preview strings.Builder
 			
 			preview.WriteString(fmt.Sprintf("📦 Package: %s\n", pkg.Token))
@@ -107,7 +142,7 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 	// Collect selected packages
 	selected := make([]api.Package, len(indices))
 	for i, idx := range indices {
-		selected[i] = packages[idx]
+		selected[i] = sortedPackages[idx]
 	}
 	
 	return selected, nil
