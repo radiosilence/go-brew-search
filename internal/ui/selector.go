@@ -80,8 +80,8 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 			descStr = descStr[:47] + "..."
 		}
 		
-		// Build formatted line with proper spacing
-		display := fmt.Sprintf("%s %s %-30s │ %-15s │ %s", 
+		// Build formatted line with dots as separators to avoid fuzzy finder highlight issues
+		display := fmt.Sprintf("%s %s %-30s · %-15s · %s", 
 			statusIcon,
 			typeIcon,
 			nameStr,
@@ -156,7 +156,7 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 			return preview.String()
 		}),
 		fuzzyfinder.WithPromptString("🔍 Search packages: "),
-		fuzzyfinder.WithHeader("\n   ⚡ = Formula   🖥️  = Cask   ✅ = In Brewfile\n  ─────────────────────────────────────────────────────────────────────────────────────────────────\n   TAB: Select   ENTER: Confirm   ESC: Cancel\n"),
+		fuzzyfinder.WithHeader("\n   ⚡ Formula   🖥️ Cask   ✅ In Brewfile    ·    TAB: Select   ENTER: Confirm   ESC: Cancel\n   ══════════════════════════════════════════════════════════════════════════════════════════════\n"),
 	)
 	
 	if err != nil {
