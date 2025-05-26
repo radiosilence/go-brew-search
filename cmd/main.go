@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -13,7 +15,25 @@ import (
 	"github.com/user/go-brew-search/internal/ui"
 )
 
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
 func main() {
+	// Parse command line flags
+	immediateMode := flag.Bool("immediate", false, "Install packages immediately without updating Brewfile")
+	versionFlag := flag.Bool("version", false, "Show version information")
+	flag.Parse()
+
+	// Handle version flag
+	if *versionFlag {
+		fmt.Printf("🍺 go-brew-search %s\n", version)
+		fmt.Printf("📅 Built: %s\n", date)
+		fmt.Printf("🔨 Commit: %s\n", commit)
+		os.Exit(0)
+	}
 	// Initialize cache directory
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -57,30 +77,59 @@ func main() {
 		return
 	}
 
-	// Filter out already installed packages
-	newPackages := []api.Package{}
-	for _, pkg := range selected {
-		if !existing[pkg.Token] {
-			newPackages = append(newPackages, pkg)
+	if *immediateMode {
+		// Immediate mode: install directly without Brewfile
+		fmt.Printf("🚀 Installing %d packages directly...\n", len(selected))
+		
+		for _, pkg := range selected {
+			fmt.Printf("📦 Installing %s...\n", pkg.Token)
+			
+			var cmd *exec.Cmd
+			if pkg.Type == "cask" {
+				cmd = exec.Command("brew", "install", "--cask", pkg.Token)
+			} else {
+				cmd = exec.Command("brew", "install", pkg.Token)
+			}
+			
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			
+			if err := cmd.Run(); err != nil {
+				log.Printf("⚠️  Failed to install %s: %v", pkg.Token, err)
+				continue
+			}
+			
+			fmt.Printf("✅ Installed %s\n", pkg.Token)
 		}
-	}
+		
+		fmt.Println("✨ Done!")
+	} else {
+		// Normal mode: update Brewfile
+		// Filter out already installed packages
+		newPackages := []api.Package{}
+		for _, pkg := range selected {
+			if !existing[pkg.Token] {
+				newPackages = append(newPackages, pkg)
+			}
+		}
 
-	if len(newPackages) == 0 {
-		fmt.Println("✅ All selected packages are already in Brewfile")
-		return
-	}
+		if len(newPackages) == 0 {
+			fmt.Println("✅ All selected packages are already in Brewfile")
+			return
+		}
 
-	// Add new packages to Brewfile
-	fmt.Printf("📝 Adding %d new packages to Brewfile...\n", len(newPackages))
-	if err := brewfileManager.AddPackages(newPackages); err != nil {
-		log.Fatal("❌ Failed to update Brewfile:", err)
-	}
+		// Add new packages to Brewfile
+		fmt.Printf("📝 Adding %d new packages to Brewfile...\n", len(newPackages))
+		if err := brewfileManager.AddPackages(newPackages); err != nil {
+			log.Fatal("❌ Failed to update Brewfile:", err)
+		}
 
-	// Run brew bundle
-	fmt.Println("🚀 Running brew bundle...")
-	if err := brewfileManager.RunBundle(); err != nil {
-		log.Fatal("❌ Failed to run brew bundle:", err)
-	}
+		// Run brew bundle
+		fmt.Println("🚀 Running brew bundle...")
+		if err := brewfileManager.RunBundle(); err != nil {
+			log.Fatal("❌ Failed to run brew bundle:", err)
+		}
 
-	fmt.Println("✨ Done!")
+		fmt.Println("✨ Done!")
+	}
 }

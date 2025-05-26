@@ -1,6 +1,6 @@
 # 🍺 go-brew-search
 
-> **🤖 AI Experiment**: This project was entirely generated through a conversation with Claude 3.5 Sonnet. It serves as an experiment in AI-assisted software development.
+> **🤖 AI Experiment**: This project was entirely generated through a conversation with Claude 4 Opus. It serves as an experiment in AI-assisted software development.
 
 A blazing-fast, interactive Homebrew package search tool with local caching. Say goodbye to slow `brew search` commands!
 
@@ -12,6 +12,7 @@ A blazing-fast, interactive Homebrew package search tool with local caching. Say
 - **✅ Multi-Select**: Select multiple packages at once with TAB
 - **🎯 Smart Integration**: Automatically adds selected packages to your `~/Brewfile`
 - **🚀 Auto-Install**: Runs `brew bundle` after selection to install packages
+- **⚡ Direct Install**: Use `--immediate` flag to install without Brewfile
 - **📝 Status Tracking**: Shows which packages are already in your Brewfile
 - **🎨 Beautiful UI**: Uses emojis and colors for better visual feedback
 
@@ -33,6 +34,7 @@ If you don't have Task installed, you can use our helper script:
 ```
 
 Or install manually:
+
 - macOS: `brew install go-task/tap/go-task`
 - Linux: See [installation guide](https://taskfile.dev/installation/)
 
@@ -65,11 +67,21 @@ mv $GOPATH/bin/cmd $GOPATH/bin/brew-search
 
 ## 🚀 Usage
 
-Simply run:
+### Default Mode (Brewfile)
 
 ```bash
 brew-search
 ```
+
+This will update your `~/Brewfile` and run `brew bundle`.
+
+### Immediate Mode (Direct Installation)
+
+```bash
+brew-search --immediate
+```
+
+This will install selected packages directly without updating your Brewfile.
 
 ### Interactive Controls
 
@@ -90,8 +102,8 @@ brew-search
 1. **Caching**: On first run, fetches all package data from Homebrew's API and caches it locally
 2. **Search**: Provides instant fuzzy search through the cached data
 3. **Selection**: Shows an interactive interface with package details
-4. **Brewfile Management**: Adds selected packages to `~/Brewfile` with proper formatting
-5. **Installation**: Automatically runs `brew bundle` to install the selected packages
+4. **Brewfile Management**: Adds selected packages to `~/Brewfile` with proper formatting (unless using `--immediate`)
+5. **Installation**: Automatically runs `brew bundle` or direct `brew install` to install the selected packages
 
 ## 📁 Cache Management
 

@@ -14,8 +14,8 @@ type Manager struct {
 }
 
 type cacheEntry struct {
-	Data      interface{} `json:"data"`
-	Timestamp time.Time   `json:"timestamp"`
+	Data      any       `json:"data"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 func New(dir string, ttl time.Duration) *Manager {
@@ -25,7 +25,7 @@ func New(dir string, ttl time.Duration) *Manager {
 	}
 }
 
-func (m *Manager) Get(key string, dest interface{}) error {
+func (m *Manager) Get(key string, dest any) error {
 	path := m.cachePath(key)
 	
 	data, err := os.ReadFile(path)
@@ -56,7 +56,7 @@ func (m *Manager) Get(key string, dest interface{}) error {
 	return json.Unmarshal(jsonData, dest)
 }
 
-func (m *Manager) Set(key string, data interface{}) error {
+func (m *Manager) Set(key string, data any) error {
 	entry := cacheEntry{
 		Data:      data,
 		Timestamp: time.Now(),

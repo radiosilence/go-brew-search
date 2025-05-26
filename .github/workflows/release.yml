@@ -1,0 +1,166 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Run tests
+        run: go test -v ./...
+
+      - name: Run linters
+        run: |
+          gofmt -l .
+          go vet ./...
+
+  build:
+    name: Build
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: darwin
+            goarch: amd64
+            suffix: darwin-amd64
+          - goos: darwin
+            goarch: arm64
+            suffix: darwin-arm64
+          - goos: linux
+            goarch: amd64
+            suffix: linux-amd64
+          - goos: linux
+            goarch: arm64
+            suffix: linux-arm64
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install dependencies
+        run: go mod download
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o brew-search-${{ matrix.suffix }} cmd/main.go
+          chmod +x brew-search-${{ matrix.suffix }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: brew-search-${{ matrix.suffix }}
+          path: brew-search-${{ matrix.suffix }}
+
+  release:
+    name: Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Create release notes
+        run: |
+          cat > release-notes.md << 'EOF'
+          ## 🍺 go-brew-search ${{ github.ref_name }}
+
+          ### ✨ Features
+          - ⚡ Lightning-fast search with local caching
+          - 🔍 Interactive fuzzy finder interface
+          - 📊 Beautiful tabular display with emojis
+          - ✅ Multi-select support
+          - 🎯 Smart Brewfile integration
+          - 🚀 Direct installation mode with `--immediate`
+
+          ### 📦 Installation
+
+          #### macOS (Apple Silicon)
+          ```bash
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/brew-search-darwin-arm64 -o brew-search
+          chmod +x brew-search
+          sudo mv brew-search /usr/local/bin/
+          ```
+
+          #### macOS (Intel)
+          ```bash
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/brew-search-darwin-amd64 -o brew-search
+          chmod +x brew-search
+          sudo mv brew-search /usr/local/bin/
+          ```
+
+          #### Linux (x86_64)
+          ```bash
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/brew-search-linux-amd64 -o brew-search
+          chmod +x brew-search
+          sudo mv brew-search /usr/local/bin/
+          ```
+
+          #### Linux (ARM64)
+          ```bash
+          curl -L https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/brew-search-linux-arm64 -o brew-search
+          chmod +x brew-search
+          sudo mv brew-search /usr/local/bin/
+          ```
+
+          ### 🚀 Usage
+
+          ```bash
+          # Interactive search with Brewfile update
+          brew-search
+
+          # Direct installation without Brewfile
+          brew-search --immediate
+          ```
+
+          ---
+          🤖 This project was generated entirely by Claude 3.5 Sonnet
+          EOF
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release-notes.md
+          files: |
+            brew-search-darwin-amd64/brew-search-darwin-amd64
+            brew-search-darwin-arm64/brew-search-darwin-arm64
+            brew-search-linux-amd64/brew-search-linux-amd64
+            brew-search-linux-arm64/brew-search-linux-arm64
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -89,7 +89,7 @@ func (c *Client) FetchAllPackages() ([]Package, error) {
 
 func (c *Client) fetchFormulae() ([]Package, error) {
 	// Check cache first
-	var formulae []map[string]interface{}
+	var formulae []map[string]any
 	if err := c.cache.Get("formulae", &formulae); err == nil {
 		return c.parseFormulae(formulae), nil
 	}
@@ -118,7 +118,7 @@ func (c *Client) fetchFormulae() ([]Package, error) {
 
 func (c *Client) fetchCasks() ([]Package, error) {
 	// Check cache first
-	var casks []map[string]interface{}
+	var casks []map[string]any
 	if err := c.cache.Get("casks", &casks); err == nil {
 		return c.parseCasks(casks), nil
 	}
@@ -145,7 +145,7 @@ func (c *Client) fetchCasks() ([]Package, error) {
 	return c.parseCasks(casks), nil
 }
 
-func (c *Client) parseFormulae(formulae []map[string]interface{}) []Package {
+func (c *Client) parseFormulae(formulae []map[string]any) []Package {
 	packages := make([]Package, 0, len(formulae))
 	for _, f := range formulae {
 		pkg := Package{
@@ -169,7 +169,7 @@ func (c *Client) parseFormulae(formulae []map[string]interface{}) []Package {
 			pkg.Homepage = homepage
 		}
 
-		if versions, ok := f["versions"].(map[string]interface{}); ok {
+		if versions, ok := f["versions"].(map[string]any); ok {
 			if stable, ok := versions["stable"].(string); ok {
 				pkg.Version = stable
 			}
@@ -182,7 +182,7 @@ func (c *Client) parseFormulae(formulae []map[string]interface{}) []Package {
 	return packages
 }
 
-func (c *Client) parseCasks(casks []map[string]interface{}) []Package {
+func (c *Client) parseCasks(casks []map[string]any) []Package {
 	packages := make([]Package, 0, len(casks))
 	for _, cs := range casks {
 		pkg := Package{
@@ -194,7 +194,7 @@ func (c *Client) parseCasks(casks []map[string]interface{}) []Package {
 			pkg.Name = token // Use token as name for casks
 		}
 
-		if name, ok := cs["name"].([]interface{}); ok && len(name) > 0 {
+		if name, ok := cs["name"].([]any); ok && len(name) > 0 {
 			if n, ok := name[0].(string); ok {
 				pkg.FullName = n
 			}
