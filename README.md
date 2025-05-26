@@ -20,6 +20,19 @@ A blazing-fast, interactive Homebrew package search tool with local caching. Say
 - Go 1.21 or later
 - Homebrew installed
 - A terminal that supports Unicode (for emojis)
+- [Task](https://taskfile.dev) - Task runner for build automation
+
+#### Installing Task
+
+If you don't have Task installed, you can use our helper script:
+
+```bash
+./install-task.sh
+```
+
+Or install manually:
+- macOS: `brew install go-task/tap/go-task`
+- Linux: See [installation guide](https://taskfile.dev/installation/)
 
 ### Build from Source
 
@@ -29,12 +42,15 @@ git clone https://github.com/yourusername/go-brew-search.git
 cd go-brew-search
 
 # Build the binary
-./build.sh
+task build
 
 # Option 1: Install system-wide
-sudo cp brew-search /usr/local/bin/
+task install
 
-# Option 2: Add to PATH
+# Option 2: Install to ~/.local/bin
+task install-local
+
+# Option 3: Add to PATH
 export PATH="$PWD:$PATH"
 ```
 
@@ -100,14 +116,41 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 ### Development
 
 ```bash
+# Show all available tasks
+task
+
 # Run tests
-go test ./...
+task test
 
-# Build with verbose output
-go build -v -o brew-search cmd/main.go
+# Run tests with coverage
+task test-coverage
 
-# Run with Go
-go run cmd/main.go
+# Build the binary
+task build
+
+# Build and run
+task run
+
+# Format code
+task fmt
+
+# Run linters
+task lint
+
+# Run all checks (fmt, lint, test)
+task check
+
+# Build release binaries for multiple platforms
+task release
+
+# Clean build artifacts
+task clean
+
+# Clear the package cache
+task clean-cache
+
+# Run the interactive demo
+task demo
 ```
 
 ## 📝 License

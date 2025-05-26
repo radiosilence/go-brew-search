@@ -1,0 +1,156 @@
+version: '3'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list-all
+
+  build:
+    desc: Build the brew-search binary
+    cmds:
+      - 'echo "🔨 Building go-brew-search..."'
+      - 'echo "📦 Downloading dependencies..."'
+      - go mod download
+      - 'echo "🏗️  Compiling..."'
+      - go build -o brew-search cmd/main.go
+      - chmod +x brew-search
+      - 'echo "✅ Build complete! Binary created at ./brew-search"'
+    sources:
+      - cmd/**/*.go
+      - internal/**/*.go
+      - go.mod
+    generates:
+      - brew-search
+
+  install:
+    desc: Install brew-search to /usr/local/bin
+    deps: [build]
+    cmds:
+      - 'echo "📦 Installing brew-search to /usr/local/bin..."'
+      - sudo cp brew-search /usr/local/bin/
+      - 'echo "✅ Installation complete!"'
+
+  install-local:
+    desc: Install brew-search to ~/.local/bin
+    deps: [build]
+    cmds:
+      - 'echo "📦 Installing brew-search to ~/.local/bin..."'
+      - mkdir -p ~/.local/bin
+      - cp brew-search ~/.local/bin/
+      - echo "✅ Installation complete!"
+      - 'echo "💡 Make sure ~/.local/bin is in your PATH"'
+
+  run:
+    desc: Build and run brew-search
+    deps: [build]
+    cmds:
+      - ./brew-search
+
+  demo:
+    desc: Run the interactive demo
+    deps: [build]
+    cmds:
+      - 'echo "🍺 go-brew-search Demo"'
+      - echo "====================="
+      - echo ""
+      - 'echo "📝 This demo will show you how to use go-brew-search"'
+      - echo ""
+      - echo "Features demonstrated:"
+      - echo "  - Fast fuzzy search through all Homebrew packages"
+      - echo "  - Multi-select capability (use TAB)"
+      - echo "  - Shows which packages are already in your Brewfile"
+      - echo "  - Automatically updates ~/Brewfile"
+      - echo "  - Runs brew bundle to install selected packages"
+      - echo ""
+      - echo "Press ENTER to start the interactive search..."
+      - read -n 1 -s -r -p "Press any key to continue..."
+      - ./brew-search
+      - echo ""
+      - 'echo "✨ Demo complete!"'
+
+  test:
+    desc: Run tests
+    cmds:
+      - 'echo "🧪 Running tests..."'
+      - go test -v ./...
+
+  test-coverage:
+    desc: Run tests with coverage
+    cmds:
+      - 'echo "🧪 Running tests with coverage..."'
+      - go test -v -coverprofile=coverage.out ./...
+      - go tool cover -html=coverage.out -o coverage.html
+      - 'echo "📊 Coverage report generated: coverage.html"'
+
+  clean:
+    desc: Clean build artifacts and cache
+    cmds:
+      - 'echo "🧹 Cleaning build artifacts..."'
+      - rm -f brew-search
+      - rm -f coverage.out coverage.html
+      - 'echo "✅ Clean complete!"'
+
+  clean-cache:
+    desc: Clear the local package cache
+    cmds:
+      - 'echo "🗑️  Clearing package cache..."'
+      - rm -rf ~/.cache/go-brew-search
+      - 'echo "✅ Cache cleared!"'
+
+  deps:
+    desc: Download and verify dependencies
+    cmds:
+      - 'echo "📦 Downloading dependencies..."'
+      - go mod download
+      - go mod verify
+      - 'echo "✅ Dependencies ready!"'
+
+  tidy:
+    desc: Tidy and verify go.mod
+    cmds:
+      - 'echo "🧹 Tidying go.mod..."'
+      - go mod tidy
+      - 'echo "✅ go.mod is tidy!"'
+
+  fmt:
+    desc: Format Go code
+    cmds:
+      - 'echo "🎨 Formatting code..."'
+      - go fmt ./...
+      - 'echo "✅ Code formatted!"'
+
+  lint:
+    desc: Run linters
+    cmds:
+      - 'echo "🔍 Running linters..."'
+      - 'test -z $(gofmt -l .) || (echo "❌ Code needs formatting" && exit 1)'
+      - go vet ./...
+      - 'echo "✅ Linting passed!"'
+
+  dev:
+    desc: Run in development mode with auto-rebuild
+    cmds:
+      - 'echo "👀 Watching for changes..."'
+      - 'echo "⚠️  Note: Requires fswatch (brew install fswatch) or inotify-tools"'
+      - echo "Press Ctrl+C to stop watching"
+      - 'command -v fswatch >/dev/null 2>&1 && fswatch -r cmd/ internal/ | xargs -n1 -I{} task build || echo "❌ fswatch not found. Install with: brew install fswatch"'
+
+  release:
+    desc: Build release binaries for multiple platforms
+    cmds:
+      - 'echo "📦 Building release binaries..."'
+      - mkdir -p dist
+      - GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/brew-search-darwin-amd64 cmd/main.go
+      - GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/brew-search-darwin-arm64 cmd/main.go
+      - GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/brew-search-linux-amd64 cmd/main.go
+      - GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/brew-search-linux-arm64 cmd/main.go
+      - 'echo "✅ Release binaries built in dist/"'
+      - ls -la dist/
+
+  check:
+    desc: Run all checks (fmt, lint, test)
+    cmds:
+      - task: fmt
+      - task: lint
+      - task: test
