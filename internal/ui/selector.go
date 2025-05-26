@@ -9,6 +9,12 @@ import (
 	"github.com/user/go-brew-search/internal/api"
 )
 
+type packageDisplay struct {
+	pkg     api.Package
+	display string
+	index   int
+}
+
 func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]api.Package, error) {
 	// Create a copy and sort packages by token length (shorter = more likely to be searched)
 	sortedPackages := make([]api.Package, len(packages))
@@ -23,9 +29,8 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 		return sortedPackages[i].Token < sortedPackages[j].Token
 	})
 	
-	// Prepare display items and search strings
-	items := make([]string, len(sortedPackages))
-	searchStrings := make([]string, len(sortedPackages))
+	// Prepare display items with wrapper type
+	items := make([]packageDisplay, len(sortedPackages))
 	for i, pkg := range sortedPackages {
 		// Status indicators
 		var statusIcon string
@@ -76,7 +81,7 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 		}
 		
 		// Build formatted line with proper spacing
-		items[i] = fmt.Sprintf("%s %s %-30s │ %-15s │ %s", 
+		display := fmt.Sprintf("%s %s %-30s │ %-15s │ %s", 
 			statusIcon,
 			typeIcon,
 			nameStr,
@@ -84,23 +89,26 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 			descStr,
 		)
 		
-		// Create search string with just the essential info for better matching
-		searchStrings[i] = fmt.Sprintf("%s %s %s", pkg.Token, pkg.FullName, pkg.Description)
+		items[i] = packageDisplay{
+			pkg:     pkg,
+			display: display,
+			index:   i,
+		}
 	}
 	
 	// Show fuzzy finder with multi-select
 	indices, err := fuzzyfinder.FindMulti(
 		items,
 		func(i int) string {
-			// Return the search string for matching, but items[i] will be displayed
-			return searchStrings[i]
+			// Return the formatted display string
+			return items[i].display
 		},
 		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
 			if i == -1 {
 				return ""
 			}
 			
-			pkg := sortedPackages[i]
+			pkg := items[i].pkg
 			var preview strings.Builder
 			
 			// Header with package name and type
@@ -161,7 +169,7 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 	// Collect selected packages
 	selected := make([]api.Package, len(indices))
 	for i, idx := range indices {
-		selected[i] = sortedPackages[idx]
+		selected[i] = items[idx].pkg
 	}
 	
 	return selected, nil
