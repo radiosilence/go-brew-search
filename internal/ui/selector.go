@@ -23,13 +23,14 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 		return sortedPackages[i].Token < sortedPackages[j].Token
 	})
 	
-	// Prepare display items
+	// Prepare display items and search strings
 	items := make([]string, len(sortedPackages))
+	searchStrings := make([]string, len(sortedPackages))
 	for i, pkg := range sortedPackages {
 		// Status indicators
 		var statusIcon string
 		if existing[pkg.Token] {
-			statusIcon = "✅" // Already installed
+			statusIcon = "✅"
 		} else {
 			statusIcon = "  "
 		}
@@ -37,9 +38,9 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 		// Package type icon
 		var typeIcon string
 		if pkg.Type == "cask" {
-			typeIcon = "🖥️ " // GUI app
+			typeIcon = "🖥️"
 		} else {
-			typeIcon = "⚡" // CLI tool
+			typeIcon = "⚡"
 		}
 		
 		name := pkg.Token
@@ -64,51 +65,34 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 		}
 		
 		// Format with clear visual separation using box drawing characters
-		nameStr := truncate(name, 32)
-		versionStr := truncate(version, 12)
+		nameStr := truncate(name, 30)
+		versionStr := version
+		if len(versionStr) > 15 {
+			versionStr = versionStr[:12] + "..."
+		}
 		descStr := desc
-		if len(descStr) > 60 {
-			descStr = descStr[:57] + "..."
+		if len(descStr) > 50 {
+			descStr = descStr[:47] + "..."
 		}
 		
-		items[i] = fmt.Sprintf("%s %s %-32s │ %-12s │ %s", 
+		// Build formatted line with proper spacing
+		items[i] = fmt.Sprintf("%s %s %-30s │ %-15s │ %s", 
 			statusIcon,
 			typeIcon,
 			nameStr,
 			versionStr,
 			descStr,
 		)
-	}
-	
-	// Create searchable strings that prioritize exact matches
-	searchStrings := make([]string, len(sortedPackages))
-	for i, pkg := range sortedPackages {
-		// Build search string with weighted components
-		var parts []string
 		
-		// Exact token match (highest priority - repeat 10 times)
-		for j := 0; j < 10; j++ {
-			parts = append(parts, pkg.Token)
-		}
-		
-		// Add full name if different (medium priority)
-		if pkg.FullName != "" && pkg.FullName != pkg.Token {
-			parts = append(parts, pkg.FullName, pkg.FullName)
-		}
-		
-		// Add description (lowest priority)
-		if pkg.Description != "" {
-			parts = append(parts, pkg.Description)
-		}
-		
-		searchStrings[i] = strings.Join(parts, " ")
+		// Create search string with just the essential info for better matching
+		searchStrings[i] = fmt.Sprintf("%s %s %s", pkg.Token, pkg.FullName, pkg.Description)
 	}
 	
 	// Show fuzzy finder with multi-select
 	indices, err := fuzzyfinder.FindMulti(
 		items,
 		func(i int) string {
-			// Return the search string for scoring, but display shows items[i]
+			// Return the search string for matching, but items[i] will be displayed
 			return searchStrings[i]
 		},
 		fuzzyfinder.WithPreviewWindow(func(i, w, h int) string {
@@ -164,7 +148,7 @@ func ShowPackageSelector(packages []api.Package, existing map[string]bool) ([]ap
 			return preview.String()
 		}),
 		fuzzyfinder.WithPromptString("🔍 Search packages: "),
-		fuzzyfinder.WithHeader("\n  ⚡ Formula  🖥️  Cask  ✅ In Brewfile  │  TAB: Select  ENTER: Confirm  ESC: Cancel\n  ──────────────────────────────────────────────────────────────────────────────────────────────────\n"),
+		fuzzyfinder.WithHeader("\n   ⚡ = Formula   🖥️  = Cask   ✅ = In Brewfile\n  ─────────────────────────────────────────────────────────────────────────────────────────────────\n   TAB: Select   ENTER: Confirm   ESC: Cancel\n"),
 	)
 	
 	if err != nil {
